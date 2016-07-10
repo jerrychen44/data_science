@@ -4,6 +4,7 @@ import os,sys
 from time import sleep
 import svm_simple_smo as svmsimp
 from plot import plotSupportVectors as plotSV
+from plot import plotSupportVectors_RBF as plotSV_RBF
 filepath=os.path.dirname(os.path.realpath(__file__))
 
 def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dimensional space
@@ -14,9 +15,8 @@ def kernelTrans(X, A, kTup): #calc the kernel or transform data to a higher dime
         for j in range(m):
             deltaRow = X[j,:] - A
             K[j] = deltaRow*deltaRow.T
-        K = exp(K/(-1*kTup[1]**2)) #divide in NumPy is element-wise not matrix like Matlab
-    else: raise NameError('Houston We Have a Problem -- \
-    That Kernel is not recognized')
+        K = np.exp(K/(-1*kTup[1]**2)) #divide in NumPy is element-wise not matrix like Matlab
+    else: raise NameError('Houston We Have a Problem -- That Kernel is not recognized')
     return K
 
 class optStruct:
@@ -119,9 +119,63 @@ def calcWs(alphas,dataArr,classLabels):
         w += np.multiply(alphas[i]*labelMat[i],X[i,:].T)
     return w
 
-def test():
+def testRbf(k1=1.3):
+    data_file=filepath+'/data_set/testSetRBF.txt'
+    dataArr,labelArr=svmsimp.loadDataSet(data_file)
+    #dataArr,labelArr = loadDataSet(data_file)
+    b,alphas = smoP(dataArr, labelArr, 200, 0.0001, 10000, ('rbf', k1)) #C=200 important
+    datMat=np.mat(dataArr); labelMat = np.mat(labelArr).transpose()
+    svInd=np.nonzero(alphas.A>0)[0]
+    sVs=datMat[svInd] #get matrix of only support vectors
+    labelSV = labelMat[svInd];
+    print ("there are %d Support Vectors" % np.shape(sVs)[0])
 
-    dataMat,labelMat=svmsimp.loadDataSet(filepath+'/data_set/testSet.txt')
+
+    #Training Set
+    m,n = np.shape(datMat)
+    errorCount = 0
+    for i in range(m):
+        kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1))
+        predict=kernelEval.T * np.multiply(labelSV,alphas[svInd]) + b
+        if np.sign(predict)!=np.sign(labelArr[i]): errorCount += 1
+    print ("the training error rate is: %f" % (float(errorCount)/m))
+    #want to plot
+    support_Vecoter=[]
+    for i in range(100):
+        if alphas[i] > 0.0:
+            #print(datMat[i],labelMat[i])
+            support_Vecoter.append(dataArr[i])
+    #print(support_Vecoter)
+    plotSV_RBF.plot_support_vectors(support_Vecoter,data_file)
+
+    #Testing Set
+    data_file=filepath+'/data_set/testSetRBF2.txt'
+    dataArr,labelArr=svmsimp.loadDataSet(data_file)
+    #dataArr,labelArr = loadDataSet('testSetRBF2.txt'))
+    errorCount = 0
+    datMat=np.mat(dataArr); labelMat = np.mat(labelArr).transpose()
+    m,n = np.shape(datMat)
+    for i in range(m):
+        kernelEval = kernelTrans(sVs,datMat[i,:],('rbf', k1))
+        predict=kernelEval.T * np.multiply(labelSV,alphas[svInd]) + b
+        if np.sign(predict)!=np.sign(labelArr[i]): errorCount += 1
+    print ("the test error rate is: %f" % (float(errorCount)/m))
+
+    #want to plot
+    support_Vecoter=[]
+    for i in range(100):
+        if alphas[i] > 0.0:
+            #print(datMat[i],labelMat[i])
+            support_Vecoter.append(dataArr[i])
+    #print(support_Vecoter)
+    plotSV_RBF.plot_support_vectors(support_Vecoter,data_file)
+    return 0
+
+def test_liner():
+    data_file=filepath+'/data_set/testSet.txt'
+
+
+    dataMat,labelMat=svmsimp.loadDataSet(data_file)
     b,alphas=smoP(dataMat, labelMat, 0.6, 0.001, 40)
     print(b,alphas[alphas>0],np.shape(alphas[alphas>0]))
 
@@ -171,5 +225,8 @@ def test():
 
     return 0
 
+
+
 if __name__=='__main__':
-    test()
+    #test_liner()
+    testRbf()
