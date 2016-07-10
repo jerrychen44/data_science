@@ -1,4 +1,7 @@
-
+'''
+@author: Peter
+@modifier: Jerry
+'''
 import numpy as np
 import os,sys
 from time import sleep
@@ -71,13 +74,17 @@ def innerL(i, oS):
         else:
             L = max(0, oS.alphas[j] + oS.alphas[i] - oS.C)
             H = min(oS.C, oS.alphas[j] + oS.alphas[i])
-        if L==H: print ("L==H"); return 0
+        if L==H:
+            #print ("L==H")
+            return 0
         eta = 2.0 * oS.K[i,j] - oS.K[i,i] - oS.K[j,j] #changed for kernel
         if eta >= 0: print ("eta>=0"); return 0
         oS.alphas[j] -= oS.labelMat[j]*(Ei - Ej)/eta
         oS.alphas[j] = svmsimp.clipAlpha(oS.alphas[j],H,L)
         updateEk(oS, j) #added this for the Ecache
-        if (abs(oS.alphas[j] - alphaJold) < 0.00001): print ("j not moving enough"); return 0
+        if (abs(oS.alphas[j] - alphaJold) < 0.00001):
+            #print ("j not moving enough")
+            return 0
         oS.alphas[i] += oS.labelMat[j]*oS.labelMat[i]*(alphaJold - oS.alphas[j])#update i by the same amount as j
         updateEk(oS, i) #added this for the Ecache                    #the update is in the oppostie direction
         b1 = oS.b - Ei- oS.labelMat[i]*(oS.alphas[i]-alphaIold)*oS.K[i,i] - oS.labelMat[j]*(oS.alphas[j]-alphaJold)*oS.K[i,j]
@@ -98,13 +105,13 @@ def smoP(dataMatIn, classLabels, C, toler, maxIter,kTup=('lin', 0)):    #full Pl
         if entireSet:   #go over all
             for i in range(oS.m):
                 alphaPairsChanged += innerL(i,oS)
-                print ("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
+                #print ("fullSet, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
         else:#go over non-bound (railed) alphas
             nonBoundIs = np.nonzero((oS.alphas.A > 0) * (oS.alphas.A < C))[0]
             for i in nonBoundIs:
                 alphaPairsChanged += innerL(i,oS)
-                print ("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
+                #print ("non-bound, iter: %d i:%d, pairs changed %d" % (iter,i,alphaPairsChanged))
             iter += 1
         if entireSet: entireSet = False #toggle entire set loop
         elif (alphaPairsChanged == 0): entireSet = True
